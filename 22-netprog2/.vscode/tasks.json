@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "echo server",
+            "command": "/usr/bin/gcc",
+            "args": [
+                "-g",
+                "${workspaceFolder}/echoserveri.c",
+                "${workspaceFolder}/csapp.c",
+                "${workspaceFolder}/echo.c",
+                "-pthread",
+                "-o",
+                "${workspaceFolder}/echoserveri.out"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "compiler: /usr/bin/gcc"
+        }
+    ]
+}
