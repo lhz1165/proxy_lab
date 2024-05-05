@@ -1,32 +1,42 @@
 /* 
- * echoserveri.c - An iterative echo server 
- */ 
-/* $begin echoserverimain */
+ * echoservert.c - A concurrent echo server using threads
+ */
+/* $begin echoservertmain */
 #include "csapp.h"
 
 void echo(int connfd);
+void *thread(void *vargp);
 
 int main(int argc, char **argv) 
 {
-    int listenfd, connfd;
+    int listenfd, *connfdp;
     socklen_t clientlen;
-    struct sockaddr_storage clientaddr;  /* Enough space for any address */  //line:netp:echoserveri:sockaddrstorage
-    char client_hostname[MAXLINE], client_port[MAXLINE];
+    struct sockaddr_storage clientaddr;
+    pthread_t tid; 
 
     if (argc != 2) {
 	fprintf(stderr, "usage: %s <port>\n", argv[0]);
 	exit(0);
     }
-
     listenfd = Open_listenfd(argv[1]);
+
     while (1) {
-        clientlen = sizeof(struct sockaddr_storage); 
-        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-        Getnameinfo((SA *) &clientaddr, clientlen, client_hostname, MAXLINE, client_port, MAXLINE, 0);
-        printf("Connected to (%s, %s)\n", client_hostname, client_port);
-        echo(connfd);
-        Close(connfd);
+        clientlen=sizeof(struct sockaddr_storage);
+        //使每个线程都是不同的指针值，避免线程不安全
+        connfdp = Malloc(sizeof(int)); //line:conc:echoservert:beginmalloc
+        *connfdp = Accept(listenfd, (SA *) &clientaddr, &clientlen); //line:conc:echoservert:endmalloc
+        Pthread_create(&tid, NULL, thread, connfdp);
     }
-    exit(0);
 }
-/* $end echoserverimain */
+
+/* Thread routine */
+void *thread(void *vargp) 
+{  
+    int connfd = *((int *)vargp);
+    Pthread_detach(pthread_self()); //line:conc:echoservert:detach
+    Free(vargp);                    //line:conc:echoservert:free
+    echo(connfd);
+    Close(connfd);
+    return NULL;
+}
+/* $end echoservertmain */

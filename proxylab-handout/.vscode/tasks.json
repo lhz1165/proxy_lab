@@ -7,8 +7,9 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
+                "-Wall",
                 "${workspaceFolder}/*.c",
-                "-pthread",
+                "-lpthread",
                 "-o",
                 "${workspaceFolder}/main.out"
             ],

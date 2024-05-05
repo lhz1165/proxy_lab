@@ -11,10 +11,9 @@ void echo(int connfd)
     rio_t rio;
 
     Rio_readinitb(&rio, connfd);
-    Rio_writen(connfd, "你是不是乖娃儿\n", 22);
     while((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) { //line:netp:echo:eof
         char ans[MAXLINE]="hellowrold\n";
-        printf("server received %d bytes: %s\n", (int)n,buf);
+        printf("connfd %d ,server received %d bytes: %s\n",connfd,(int)n,buf);
         Rio_writen(connfd, ans, 11);  
     }
 }
