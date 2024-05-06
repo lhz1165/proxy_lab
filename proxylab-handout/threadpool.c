@@ -3,15 +3,14 @@ void doit(int connFd);
 
 
 static int nthreads;
-static blockQueue *threadQueue;
-static pthread_t  threadIds[THREAD_LIMIT];
 
+static pthread_t  threadIds[THREAD_LIMIT];
+blockQueue myqueue;
 
 //初始化线程，并运行
-void initThreadPool(blockQueue *myqueue){
+void initThreadPool(){
     nthreads = THREAD_LIMIT;
-    threadQueue= myqueue;
-    initConnFdArray(myqueue); 
+    initConnFdArray(&myqueue); 
     for (int i = 0; i < nthreads; i++) {
         // create thread
         Pthread_create(&(threadIds[i]), NULL, run, NULL);
@@ -26,13 +25,13 @@ void *run(void)
     //不断从阻塞队列中获取任务
     while (1) {
         //取出一个fd
-        int connfd = poll(threadQueue);
+        usleep(1000*330);
+        int connfd = poll(&myqueue);
 
         //执行操作
         doit(connfd);
 
         //关闭
-        printf("doit over close fd:%d\n",connfd);
         Close(connfd);
     }
 }

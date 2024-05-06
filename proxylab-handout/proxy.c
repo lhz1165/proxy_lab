@@ -32,8 +32,7 @@ int main(int argc, char **argv)
     }
 
     listenfd = Open_listenfd(argv[1]);
-    blockQueue blockQueue;
-    initThreadPool(&blockQueue);
+    initThreadPool();
     while (1) {
         clientlen = sizeof(clientaddr);
         connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:netp:tiny:accept
@@ -41,7 +40,7 @@ int main(int argc, char **argv)
                         port, MAXLINE, 0);
         //doit(connfd);                                             //line:netp:tiny:doit
         //Close(connfd);                                        //line:netp:tiny:close
-        offer(connfd,&blockQueue);
+        offer(connfd,&myqueue);
     }
 
 }

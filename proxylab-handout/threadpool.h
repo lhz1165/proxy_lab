@@ -5,7 +5,7 @@
 
 #define THREAD_LIMIT 10   
 
-void initThreadPool(blockQueue *myqueue);
+void initThreadPool();
 void *run(void);
-
+extern blockQueue myqueue;
 #endif
