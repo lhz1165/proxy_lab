@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include "csapp.h"
+#include "threadpool.h"
+
 /* Recommended max cache and object sizes */
 #define MAX_CACHE_SIZE 1049000
 #define MAX_OBJECT_SIZE 102400
@@ -30,15 +32,18 @@ int main(int argc, char **argv)
     }
 
     listenfd = Open_listenfd(argv[1]);
+    blockQueue blockQueue;
+    initThreadPool(&blockQueue);
     while (1) {
-	clientlen = sizeof(clientaddr);
-	connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:netp:tiny:accept
+        clientlen = sizeof(clientaddr);
+        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:netp:tiny:accept
         Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, 
-                    port, MAXLINE, 0);
-        printf("Accepted connection from (%s, %s)\n", hostname, port);
-	doit(connfd);                                             //line:netp:tiny:doit
-	Close(connfd);                                            //line:netp:tiny:close
+                        port, MAXLINE, 0);
+        //doit(connfd);                                             //line:netp:tiny:doit
+        //Close(connfd);                                        //line:netp:tiny:close
+        offer(connfd,&blockQueue);
     }
+
 }
 /* $end tinymain */
 
@@ -48,6 +53,7 @@ int main(int argc, char **argv)
 /* $begin doit */
 void doit(int fd) 
 {
+    printf("doit Accepted connection from %d\n",fd);
     int is_static;
     struct stat sbuf;
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];

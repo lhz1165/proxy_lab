@@ -36,8 +36,10 @@ int main(int argc, char **argv)
 	connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:netp:tiny:accept
         Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, 
                     port, MAXLINE, 0);
-        printf("Accepted connection from (%s, %s)\n", hostname, port);
+    printf("doit fd %d\n", connfd);
 	doit(connfd);                                             //line:netp:tiny:doit
+
+    printf("doit over close fd:%d\n",connfd);
 	Close(connfd);                                            //line:netp:tiny:close
     }
 }
@@ -49,6 +51,7 @@ int main(int argc, char **argv)
 /* $begin doit */
 void doit(int fd) 
 {
+    printf("doit Accepted connection from %d\n",fd);
     int is_static;
     struct stat sbuf;
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];

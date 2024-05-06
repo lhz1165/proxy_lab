@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "stdio.h": "c",
+        "threadpool.h": "c",
+        "csapp.h": "c",
+        "array": "c",
+        "deque": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "in.h": "c",
+        "arrayblockqueue.h": "c",
+        "semaphore.h": "c"
+    }
+}
