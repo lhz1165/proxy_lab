@@ -12,6 +12,7 @@
         "initializer_list": "c",
         "in.h": "c",
         "arrayblockqueue.h": "c",
-        "semaphore.h": "c"
+        "semaphore.h": "c",
+        "type_traits": "c"
     }
 }

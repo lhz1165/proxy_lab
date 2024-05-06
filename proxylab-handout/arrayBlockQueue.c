@@ -2,65 +2,58 @@
 
 
 
-
-void initConnFdArray(blockQueue* queue){
+void initConnFdArray(blockQueue* queue,int n){
     sem_unlink("empty");
     sem_unlink("full");
     sem_unlink("mutexLock");
 
     // 初始化sem_t指针
-    queue->empty = (sem_t *)malloc(sizeof(sem_t));
-    queue->full = (sem_t *)malloc(sizeof(sem_t));
-    queue->mutexLock = (sem_t *)malloc(sizeof(sem_t));
-
-
-
-    sem_init(queue->empty, 0, CONNFDLIMIT);
-    sem_init(queue->full, 0, 0);
-    sem_init(queue->mutexLock, 0, 1);
-
-    queue->headIndex=0;
-    queue->tailIndex=0;
+    //queue->slots = *(sem_t *)malloc(sizeof(sem_t));
+  // queue->items = *(sem_t *)malloc(sizeof(sem_t));
+   // queue->mutex = *(sem_t *)malloc(sizeof(sem_t));
     queue->size=0;
-    for (int i = 0; i < CONNFDLIMIT; ++i) {
+    queue->n=n;
+    queue->front=0;
+    queue->rear=0;
+
+    Sem_init(&queue->mutex, 0, 1); /* Binary semaphore for locking */
+    Sem_init(&queue->empty, 0, n); /* Initially, buf has n empty slots */
+    Sem_init(&queue->full, 0, 0); /* Initially, buf has zero data items */
+
+
+    for (int i = 0; i < n; ++i) {
          queue->connFdArray[i] = -1;
     }
 }
 
 
-void offer(int connFd,blockQueue* queue){
-    sem_t *empty = queue->empty;
-    sem_t *full = queue->full;
-    sem_t *mutexLock = queue->mutexLock;
-    int tailIndex = queue->tailIndex;
-
-    P(empty);
-    P(mutexLock);
-    queue->connFdArray[tailIndex] = connFd;
-    queue->tailIndex = (tailIndex+1)%CONNFDLIMIT;
-    queue->size=queue->size+1;
-    V(mutexLock);
-    V(full);
+void offer(blockQueue* queue,int connFd){
+    P(&queue->empty);                          /* Wait for available slot */
+    P(&queue->mutex);   
+    int tailIndex= queue->rear;                /* Lock the buffer */
+    queue->connFdArray[tailIndex] = connFd;    
+    queue->rear= (tailIndex+1) % (queue->n);   /* Insert the item */
+    ++queue->size;
+    V(&queue->mutex); /* Unlock the buffer */
+    V(&queue->full); /* Announce available item */
 }
 int poll(blockQueue* queue){
-    sem_t *empty = queue->empty;
-    sem_t *full = queue->full;
-    sem_t *mutexLock = queue->mutexLock;
-    int headIndex = queue->headIndex;
-
-    P(full);
-    P(mutexLock);
-    int connfd = queue->connFdArray[headIndex];
+    int item;
+    P(&queue->full);                           /* Wait for available item */
+    //pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);  // 不可取消
+    P(&queue->mutex);                           /* Lock the buffer */
+    int headIndex =(queue->front);
+    item = queue->connFdArray[headIndex]; /* Remove the item */
     headIndex++;
-    if (headIndex==CONNFDLIMIT)
+    if (headIndex==queue->n)
     {
         headIndex=0;
     }
-    queue->headIndex = headIndex;
-    queue->size=queue->size-1;
-    V(mutexLock);
-    V(empty);
-    return connfd;
+    queue->front=headIndex;
+    --queue->size;
+    V(&queue->mutex); /* Unlock the buffer */
+    V(&queue->empty); /* Announce available slot */
+    return item;
 }
 
 int mygetV(sem_t *empty){

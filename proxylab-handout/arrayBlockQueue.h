@@ -3,27 +3,26 @@
 #define _ARRAYBLOCKQUEUE_H_
 
 #include "csapp.h"
-
-#define CONNFDLIMIT 5
-
+#define SBUFSIZE 4
 //阻塞的循环队列
-struct arrayBlockQueue
-{
-    sem_t *empty;
-    sem_t *full;
-    //锁
-    sem_t *mutexLock;
-    int connFdArray[CONNFDLIMIT];
+typedef struct {
+    
+    int connFdArray[SBUFSIZE];
+    int n; 
     //头
-    int headIndex;
+    int front;
     //尾
-    int tailIndex;
-    //当前容量
+    int rear;
+    //当前容量    
+    sem_t mutex;
+    sem_t full;
+    sem_t empty;
     int size;
 
-};
-typedef struct arrayBlockQueue blockQueue;
-void initConnFdArray(blockQueue* queue);
-void offer(int connFd,blockQueue* queue);
+
+} blockQueue;
+//typedef struct arrayBlockQueue blockQueue;
+void initConnFdArray(blockQueue* queue,int n);
+void offer(blockQueue* queue,int connFd);
 int poll(blockQueue* queue);
 #endif

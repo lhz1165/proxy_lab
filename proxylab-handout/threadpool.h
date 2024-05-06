@@ -3,9 +3,19 @@
 #include "csapp.h"
 #include "arrayBlockQueue.h"
 
-#define THREAD_LIMIT 10   
 
-void initThreadPool();
-void *run(void);
+#define INIT_THREAD_N 5
+ 
+
 extern blockQueue myqueue;
+
+typedef struct {
+    pthread_t tid;
+} ithread;
+
+void init();
+void *run(void);
+
+void create_threads(int end);
+
 #endif

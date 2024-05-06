@@ -20,6 +20,7 @@ void clienterror(int fd, char *cause, char *errnum,
 
 int main(int argc, char **argv) 
 {
+   if (Signal(SIGPIPE, SIG_IGN) == SIG_ERR) unix_error("mask signal pipe error");
     int listenfd, connfd;
     char hostname[MAXLINE], port[MAXLINE];
     socklen_t clientlen;
@@ -27,20 +28,20 @@ int main(int argc, char **argv)
 
     /* Check command line args */
     if (argc != 2) {
-	fprintf(stderr, "usage: %s <port>\n", argv[0]);
-	exit(1);
+        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+        exit(1);
     }
+    init();
 
     listenfd = Open_listenfd(argv[1]);
-    initThreadPool();
+    //setbuf(stdout, NULL);
     while (1) {
         clientlen = sizeof(clientaddr);
-        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:netp:tiny:accept
-        Getnameinfo((SA *) &clientaddr, clientlen, hostname, MAXLINE, 
-                        port, MAXLINE, 0);
-        //doit(connfd);                                             //line:netp:tiny:doit
-        //Close(connfd);                                        //line:netp:tiny:close
-        offer(connfd,&myqueue);
+        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);  // line:netp:tiny:accept
+        offer(&myqueue, connfd);                                /* Insert connfd in buffer */
+        printf("size: %d\n", myqueue.size);
+        Getnameinfo((SA *)&clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE, 0);
+        printf("Accepted connection from (%s, %s)\n", hostname, port);
     }
 
 }
@@ -52,8 +53,7 @@ int main(int argc, char **argv)
 /* $begin doit */
 void doit(int fd) 
 {
-    printf("doit Accepted connection from %d\n",fd);
-    int is_static;
+   int is_static;
     struct stat sbuf;
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
     char filename[MAXLINE], cgiargs[MAXLINE];
@@ -61,40 +61,35 @@ void doit(int fd)
 
     /* Read request line and headers */
     Rio_readinitb(&rio, fd);
-    if (!Rio_readlineb(&rio, buf, MAXLINE))  //line:netp:doit:readrequest
+    if (!Rio_readlineb(&rio, buf, MAXLINE))  // line:netp:doit:readrequest
         return;
     printf("%s", buf);
-    sscanf(buf, "%s %s %s", method, uri, version);       //line:netp:doit:parserequest
-    if (strcasecmp(method, "GET")) {                     //line:netp:doit:beginrequesterr
-        clienterror(fd, method, "501", "Not Implemented",
-                    "Tiny does not implement this method");
+    sscanf(buf, "%s %s %s", method, uri, version);  // line:netp:doit:parserequest
+    if (strcasecmp(method, "GET")) {                // line:netp:doit:beginrequesterr
+        clienterror(fd, method, "501", "Not Implemented", "Tiny does not implement this method");
         return;
-    }                                                    //line:netp:doit:endrequesterr
-    read_requesthdrs(&rio);                              //line:netp:doit:readrequesthdrs
+    }                        // line:netp:doit:endrequesterr
+    read_requesthdrs(&rio);  // line:netp:doit:readrequesthdrs
 
     /* Parse URI from GET request */
-    is_static = parse_uri(uri, filename, cgiargs);       //line:netp:doit:staticcheck
-    if (stat(filename, &sbuf) < 0) {                     //line:netp:doit:beginnotfound
-	clienterror(fd, filename, "404", "Not found",
-		    "Tiny couldn't find this file");
-	return;
-    }                                                    //line:netp:doit:endnotfound
+    is_static = parse_uri(uri, filename, cgiargs);  // line:netp:doit:staticcheck
+    if (stat(filename, &sbuf) < 0) {                // line:netp:doit:beginnotfound
+        clienterror(fd, filename, "404", "Not found", "Tiny couldn't find this file");
+        return;
+    }  // line:netp:doit:endnotfound
 
-    if (is_static) { /* Serve static content */          
-	if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) { //line:netp:doit:readable
-	    clienterror(fd, filename, "403", "Forbidden",
-			"Tiny couldn't read the file");
-	    return;
-	}
-	serve_static(fd, filename, sbuf.st_size);        //line:netp:doit:servestatic
-    }
-    else { /* Serve dynamic content */
-	if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) { //line:netp:doit:executable
-	    clienterror(fd, filename, "403", "Forbidden",
-			"Tiny couldn't run the CGI program");
-	    return;
-	}
-	serve_dynamic(fd, filename, cgiargs);            //line:netp:doit:servedynamic
+    if (is_static) {                                                  /* Serve static content */
+        if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) {  // line:netp:doit:readable
+            clienterror(fd, filename, "403", "Forbidden", "Tiny couldn't read the file");
+            return;
+        }
+        serve_static(fd, filename, sbuf.st_size);                     // line:netp:doit:servestatic
+    } else {                                                          /* Serve dynamic content */
+        if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) {  // line:netp:doit:executable
+            clienterror(fd, filename, "403", "Forbidden", "Tiny couldn't run the CGI program");
+            return;
+        }
+        serve_dynamic(fd, filename, cgiargs);  // line:netp:doit:servedynamic
     }
 }
 /* $end doit */
