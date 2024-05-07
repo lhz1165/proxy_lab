@@ -11,10 +11,10 @@
                 "${workspaceFolder}/*.c",
                 "-lpthread",
                 "-o",
-                "${workspaceFolder}/main.out"
+                "${workspaceFolder}/proxy"
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [
                 "$gcc"

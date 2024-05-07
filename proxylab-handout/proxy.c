@@ -54,38 +54,23 @@ void doit(int fd)
 {
    int is_static;
     struct stat sbuf;
-    char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
+    
     char filename[MAXLINE], cgiargs[MAXLINE];
     rio_t rio;
 
-    /* Read request line and headers */
-    // Rio_readinitb(&rio, fd);
-    // //先读一行 
-    // //GET /index.html  HTTP/1.1
-    // if (!Rio_readlineb(&rio, buf, MAXLINE)){
-    //     return;
-    // }
-        
-    // printf("Read request line and header\n  ==>%s \n----- \n", buf);
-
-    // //获取 METHOD URI VERSION
-    // sscanf(buf, "%s %s %s", method, uri, version);
-
-    // if (strcasecmp(method, "GET")) {                // line:netp:doit:beginrequesterr
-    //     clienterror(fd, method, "501", "Not Implemented", "proxy does not implement this method");
-    //     return;
-    // } 
     Rio_readinitb(&rio, fd);
 
     request* myrequest=(request *)Malloc(sizeof(request));
+
+    //请求行
     paresLine(myrequest,fd,&rio);
 
 
+    //read_requesthdrs(&rio);  
+    //请求头
+    int resul=paresHeader(myrequest,fd,&rio);
 
 
-    //再循环一行一行读
-    //read_requesthdrs(&rio);  // line:netp:doit:readrequesthdrs
-    paresHeader(myrequest,fd,&rio);
     /* Parse URI from GET request */
     is_static = parse_uri(myrequest->line->uri, filename, cgiargs);  // line:netp:doit:staticcheck
     if (stat(filename, &sbuf) < 0) {                // line:netp:doit:beginnotfound
@@ -94,7 +79,9 @@ void doit(int fd)
     }  // line:netp:doit:endnotfound
 
     if (is_static) {                                                  /* Serve static content */
-        if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) {  // line:netp:doit:readable
+        int irsur = S_IRUSR & sbuf.st_mode;
+        int isreg = S_ISREG(sbuf.st_mode);
+        if (!irsur || !(isreg)) {  // line:netp:doit:readable
             clienterror(fd, filename, "403", "Forbidden", "Tiny couldn't read the file");
             return;
         }
@@ -137,12 +124,12 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
     char *ptr;
 
     if (!strstr(uri, "cgi-bin")) {  /* Static content */ //line:netp:parseuri:isstatic
-	strcpy(cgiargs, "");                             //line:netp:parseuri:clearcgi
-	strcpy(filename, ".");                           //line:netp:parseuri:beginconvert1
-	strcat(filename, uri);                           //line:netp:parseuri:endconvert1
-	if (uri[strlen(uri)-1] == '/')                   //line:netp:parseuri:slashcheck
-	    strcat(filename, "home.html");               //line:netp:parseuri:appenddefault
-	return 1;
+        strcpy(cgiargs, "");                             //line:netp:parseuri:clearcgi
+        strcpy(filename, ".");                           //line:netp:parseuri:beginconvert1
+        strcat(filename, uri);                           //line:netp:parseuri:endconvert1
+	    if (uri[strlen(uri)-1] == '/')                   //line:netp:parseuri:slashcheck
+	        strcat(filename, "home.html");               //line:netp:parseuri:appenddefault
+	    return 1;
     }
     else {  /* Dynamic content */                        //line:netp:parseuri:isdynamic
 	ptr = index(uri, '?');                           //line:netp:parseuri:beginextract
@@ -154,6 +141,8 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
 	    strcpy(cgiargs, "");                         //line:netp:parseuri:endextract
 	strcpy(filename, ".");                           //line:netp:parseuri:beginconvert2
 	strcat(filename, uri);                           //line:netp:parseuri:endconvert2
+
+    printf("filename = %s,bgiargs = %s\n",filename,cgiargs);
 	return 0;
     }
 }

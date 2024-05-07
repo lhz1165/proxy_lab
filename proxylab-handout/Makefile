@@ -13,11 +13,22 @@ all: proxy
 csapp.o: csapp.c csapp.h
 	$(CC) $(CFLAGS) -c csapp.c
 
+arrayBlockQueue.o: arrayBlockQueue.c arrayBlockQueue.h csapp.h
+	$(CC) $(CFLAGS) -c arrayBlockQueue.c
+
+request.o: request.c request.h csapp.h
+	$(CC) $(CFLAGS) -c request.c
+
+request.o: request.c request.h csapp.h
+	$(CC) $(CFLAGS) -c request.c
+
 proxy.o: proxy.c csapp.h
 	$(CC) $(CFLAGS) -c proxy.c
 
-proxy: proxy.o csapp.o
-	$(CC) $(CFLAGS) proxy.o csapp.o -o proxy $(LDFLAGS)
+
+
+proxy: proxy.o arrayBlockQueue.o  request.o threadpool.o csapp.o
+	$(CC) $(CFLAGS) proxy.o  arrayBlockQueue.o request.o threadpool.o csapp.o -o proxy $(LDFLAGS)
 
 # Creates a tarball in ../proxylab-handin.tar that you can then
 # hand in. DO NOT MODIFY THIS!

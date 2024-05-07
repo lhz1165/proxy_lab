@@ -25,6 +25,7 @@
         "ostream": "c",
         "ratio": "c",
         "system_error": "c",
-        "utility": "c"
+        "utility": "c",
+        "typeinfo": "c"
     }
 }
