@@ -13,6 +13,18 @@
         "in.h": "c",
         "arrayblockqueue.h": "c",
         "semaphore.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "*.tcc": "c",
+        "functional": "c",
+        "tuple": "c",
+        "request.h": "c",
+        "random": "c",
+        "sstream": "c",
+        "optional": "c",
+        "istream": "c",
+        "ostream": "c",
+        "ratio": "c",
+        "system_error": "c",
+        "utility": "c"
     }
 }

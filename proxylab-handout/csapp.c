@@ -806,19 +806,22 @@ static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n)
 {
     int cnt;
 
+    //先使用syscall把文件内容读到rio_buf
     while (rp->rio_cnt <= 0) {  /* Refill if buf is empty */
-	rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, 
-			   sizeof(rp->rio_buf));
-	if (rp->rio_cnt < 0) {
-	    if (errno != EINTR) /* Interrupted by sig handler return */
-		return -1;
-	}
-	else if (rp->rio_cnt == 0)  /* EOF */
-	    return 0;
-	else 
-	    rp->rio_bufptr = rp->rio_buf; /* Reset buffer ptr */
-    }
+	    rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, sizeof(rp->rio_buf));
+        if (rp->rio_cnt < 0) {
+            if (errno != EINTR) /* Interrupted by sig handler return */
+            return -1;
+        }
+        else if (rp->rio_cnt == 0)  /* EOF */
+            return 0;
+        else 
+            rp->rio_bufptr = rp->rio_buf; /* Reset buffer ptr */
+        }
 
+    //再把rio_buf读cnt个到usrbuf
+    //所以已读指针rio_bufptr+=cnt
+    //未读数量rio_cnt -= cnt
     /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
     cnt = n;          
     if (rp->rio_cnt < n)   
@@ -874,19 +877,20 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
     char c, *bufp = usrbuf;
 
     for (n = 1; n < maxlen; n++) { 
+        //每次从rio buf 读一个到usrbuf
         if ((rc = rio_read(rp, &c, 1)) == 1) {
-	    *bufp++ = c;
-	    if (c == '\n') {
+            *bufp++ = c;
+            if (c == '\n') {
                 n++;
-     		break;
+                break;
             }
-	} else if (rc == 0) {
-	    if (n == 1)
-		return 0; /* EOF, no data read */
-	    else
-		break;    /* EOF, some data was read */
-	} else
-	    return -1;	  /* Error */
+        } else if (rc == 0) {
+            if (n == 1)
+            return 0; /* EOF, no data read */
+        else
+            break;    /* EOF, some data was read */
+        } else
+            return -1;	  /* Error */
     }
     *bufp = 0;
     return n-1;

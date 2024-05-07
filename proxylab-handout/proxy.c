@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include "csapp.h"
 #include "threadpool.h"
+#include "request.h"
 
 /* Recommended max cache and object sizes */
 #define MAX_CACHE_SIZE 1049000
 #define MAX_OBJECT_SIZE 102400
 
-/* You won't lose style points for including this long line in your code */
-static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
 
 void doit(int fd);
 void read_requesthdrs(rio_t *rp);
@@ -41,7 +40,7 @@ int main(int argc, char **argv)
         offer(&myqueue, connfd);                                /* Insert connfd in buffer */
         printf("size: %d\n", myqueue.size);
         Getnameinfo((SA *)&clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE, 0);
-        printf("Accepted connection from (%s, %s)\n", hostname, port);
+        printf("Accepted connection from (%s, %s,%d)\n", hostname, port,connfd);
     }
 
 }
@@ -60,21 +59,37 @@ void doit(int fd)
     rio_t rio;
 
     /* Read request line and headers */
-    Rio_readinitb(&rio, fd);
-    if (!Rio_readlineb(&rio, buf, MAXLINE))  // line:netp:doit:readrequest
-        return;
-    printf("%s", buf);
-    sscanf(buf, "%s %s %s", method, uri, version);  // line:netp:doit:parserequest
-    if (strcasecmp(method, "GET")) {                // line:netp:doit:beginrequesterr
-        clienterror(fd, method, "501", "Not Implemented", "Tiny does not implement this method");
-        return;
-    }                        // line:netp:doit:endrequesterr
-    read_requesthdrs(&rio);  // line:netp:doit:readrequesthdrs
+    // Rio_readinitb(&rio, fd);
+    // //先读一行 
+    // //GET /index.html  HTTP/1.1
+    // if (!Rio_readlineb(&rio, buf, MAXLINE)){
+    //     return;
+    // }
+        
+    // printf("Read request line and header\n  ==>%s \n----- \n", buf);
 
+    // //获取 METHOD URI VERSION
+    // sscanf(buf, "%s %s %s", method, uri, version);
+
+    // if (strcasecmp(method, "GET")) {                // line:netp:doit:beginrequesterr
+    //     clienterror(fd, method, "501", "Not Implemented", "proxy does not implement this method");
+    //     return;
+    // } 
+    Rio_readinitb(&rio, fd);
+
+    request* myrequest=(request *)Malloc(sizeof(request));
+    paresLine(myrequest,fd,&rio);
+
+
+
+
+    //再循环一行一行读
+    //read_requesthdrs(&rio);  // line:netp:doit:readrequesthdrs
+    paresHeader(myrequest,fd,&rio);
     /* Parse URI from GET request */
-    is_static = parse_uri(uri, filename, cgiargs);  // line:netp:doit:staticcheck
+    is_static = parse_uri(myrequest->line->uri, filename, cgiargs);  // line:netp:doit:staticcheck
     if (stat(filename, &sbuf) < 0) {                // line:netp:doit:beginnotfound
-        clienterror(fd, filename, "404", "Not found", "Tiny couldn't find this file");
+        clienterror(fd, filename, "404", "Not found", "proxy couldn't find this file");
         return;
     }  // line:netp:doit:endnotfound
 
@@ -104,9 +119,9 @@ void read_requesthdrs(rio_t *rp)
 
     Rio_readlineb(rp, buf, MAXLINE);
     printf("%s", buf);
-    while(strcmp(buf, "\r\n")) {          //line:netp:readhdrs:checkterm
-	Rio_readlineb(rp, buf, MAXLINE);
-	printf("%s", buf);
+    while(strcmp(buf, "\r\n")) {       
+        Rio_readlineb(rp, buf, MAXLINE);
+        printf("%s", buf);
     }
     return;
 }
