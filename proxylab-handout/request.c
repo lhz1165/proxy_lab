@@ -53,7 +53,7 @@ int paresHeader(request *myrequest,int fd,rio_t *rp){
     while(strcmp(buf, "\r\n")) {    
         requestHeader *curRequestHeader =(requestHeader *) Malloc(sizeof(requestHeader));   
         Rio_readlineb(rp, buf, MAXLINE);
-
+        printf("%s",buf);
 
         char *colon = strchr(buf, ':');
         if (colon == NULL) {
